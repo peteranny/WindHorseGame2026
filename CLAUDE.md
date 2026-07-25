@@ -28,23 +28,114 @@ src/
                          # button styling stays a self-contained CSS Module as usual.
   globals.d.ts          # __DEPLOY_DATE__, the google.script.run (GAS) surface, and *.css/*.txt module typings.
   components/
-    App.tsx             # Gates every route behind Splash (app-launch, local showSplash state - not
-                        # persisted, so it replays every page load) before the router shell itself:
-                        # "/" -> Game, "/settings" -> Settings.
-    Splash/               # The app-launch splash. index.tsx holds a two-phase state machine
-                          # ("flying" | "still") plus an onEnter prop (called on tapping the still
-                          # phase, flips App's showSplash off): FlyingIntro.tsx (a rainbow-shifting
-                          # background - a wide animated linear-gradient - plus a flock of monster/
-                          # goal/player icons drifting on random per-instance CSS keyframes, built into
-                          # one <style> tag since each flyer's own path is randomized at mount, see
-                          # timing.ts's INTRO_DURATION_MS - 5s - for the auto-advance, tapping anywhere
-                          # during it skips straight to "still" instead) and StillSplash.tsx (the
-                          # resting title card - playerSprite.png and goalSprite.png standing face to
-                          # face with their own footShadow-style ellipse each, title "小風小馬遊戲"
-                          # above, "2026" below - relies on the player sprite's native art already
-                          # facing right and the goal sprite's fixed facing left, see "The goal tile"
-                          # below, so placing 小風 on the left/小馬 on the right needs no mirroring to
-                          # have them look at each other). Tapping "still" calls onEnter.
+    App.tsx             # Gates every route behind Splash via a local "splash" -> "exiting" -> "app"
+                        # stage machine (not persisted, so it replays every page load) before the
+                        # router shell itself ("/" -> Game, "/settings" -> Settings). Tapping the
+                        # still splash (Splash's onEnter) moves to "exiting": App.css's plain white
+                        # overlay fades in over the still-mounted Splash (200ms), the routed app
+                        # mounts underneath while the screen is solid white (an invisible swap -
+                        # mirrors BattleTransition's own cover -> swap -> reveal shape, just shorter,
+                        # ~0.5s total, and pattern-free), then the white fades away (300ms) to reveal
+                        # it before "app" unmounts the overlay for good.
+    Splash/               # The app-launch splash: a ~10s hands-off "short movie" (or tap-to-skip at
+                          # any point, see below) ending on a still title card, tappable to call
+                          # onEnter. timeline.ts's Act type/ACT_TIMING is the whole movie's script -
+                          # void -> bang -> vortex -> vortexReturn -> bloom -> converge -> arrive,
+                          # each just a millisecond offset from mount, plus hasReached(current,
+                          # target) for "has the movie gotten at least this far" checks.
+                          #
+                          # index.tsx owns the actual stage machine: a setTimeout per ACT_TIMING entry
+                          # driving `act` state, plus the boundary-flash sequence (see below) and an
+                          # `instant` flag for the skip path. Movie.tsx is the pure render of every
+                          # non-lead layer for a given `act` - every layer is always mounted, only its
+                          # className/inline style (driven by how far `act` has progressed) changes,
+                          # so transitions pick up smoothly rather than the component ever remounting
+                          # mid-movie. LeadFlyer.tsx owns a single lead's own full lifecycle
+                          # (described below) since it needs real DOM refs/effects, not just prop-
+                          # driven className swaps. flyers.ts holds every generated-CSS/data concern:
+                          # EXTRA_FLYER_COUNT (12) random ordinary monster icons (buildFlyer/
+                          # buildKeyframeCss's own per-instance @keyframes, since each one's
+                          # scattered-flight path is randomized) plus a random buildVortexPoint() each
+                          # (a single point at a random angle/radius from center, in vh on both axes
+                          # so it reads as a true circle), and the two dedicated "leads" - buildLeads()'s
+                          # 小風/小馬 (buildLeadKeyframeCss, same shape, plus their own vortexPoint,
+                          # LEAD_FLOCK_SCALE, and LEAD_ARRIVE_MS, see below).
+                          #
+                          # The movie, beat by beat: "void" (Movie.tsx's .voidBackdrop, solid black)
+                          # has a single glowing .spark fade in at center, then "bang" bursts it into
+                          # a huge fading flash that reveals .rainbowBackground underneath (an
+                          # oversized - 100vmax, big enough that even a rotated square never uncovers
+                          # a corner - slowly-rotating rainbow sheet: two independent animations, one
+                          # drifting the gradient's own colors, one spinning the whole sheet, so the
+                          # backdrop stays alive rather than static). "vortex" is where the whole
+                          # flock (extras + both leads, ALL rendered as silhouettes via filter:
+                          # brightness(0) - see .flyer/.leadSprite) pops into being and bursts outward
+                          # to its own random vortexPoint - a plain two-step CSS *transition*
+                          # (VORTEX_OUT_MS out, VORTEX_RETURN_MS back), not a hand-authored keyframe
+                          # curve; "vortexReturn" then draws every flyer/lead back to the exact same
+                          # center point (translate(0,0)-equivalent) their own regular flying
+                          # keyframe/vortexPoint-transition system starts from, so "bloom" can just
+                          # swap animation-name to the regular infinite drift with zero visual jump -
+                          # a synchronized "burst then regroup" for the whole flock at once, not a
+                          # per-flyer trickle. (Two subtleties that broke this hand-off during
+                          # development, worth remembering: the vortex-out transform must only apply
+                          # once "vortex" has actually fired, not from the component's first render -
+                          # otherwise there's nothing to transition *from*, since a CSS transition
+                          # only animates a value that *changes* after mount; and the regular flying
+                          # keyframe's own animation-delay must be exactly 0, not a per-flyer stagger
+                          # - a negative delay makes the keyframe start mid-cycle at an arbitrary
+                          # position instead of its own (0, 0) frame, breaking the seamless hand-off.)
+                          # From "bloom" the extras drift/loop indifferently until "converge", where
+                          # they shrink+fade away (.flyerWrap.leaving) while .skyBackground/.ground
+                          # fade in to replace the rainbow.
+                          #
+                          # The two leads (LeadFlyer.tsx) are just two more flock members through
+                          # vortex/vortexReturn/bloom - same burst-out/draw-back-in, same infinite
+                          # scattered drift - so they never look like they're idling at center waiting
+                          # to be noticed. Only once `arrived` fires does a lead peel off toward its
+                          # final resting spot, and it has to *continue* from wherever it actually
+                          # was, not snap back to center first - CSS alone can't do that hand-off,
+                          # since the instant a keyframe/transition is removed the element's transform
+                          # reverts to whatever the static cascade says, not wherever the animation
+                          # had it. LeadFlyer captures the live computed transform in a layout effect
+                          # fired the same render `arrived` first turns true (while the drift is
+                          # *still* what's being rendered, since this component hasn't reacted to
+                          # `arrived` yet), freezes it as an inline override, then releases that
+                          # override one frame later so the CSS transition to the final position
+                          # (LEAD_ARRIVE_MS, deliberately long - the movie's own centerpiece) picks up
+                          # smoothly from that exact captured point - one continuous grow + travel +
+                          # silhouette-to-color-reveal (via `filter`) motion. Targets are expressed
+                          # purely via calc() vh/px*scale math relative to stage-center (see
+                          # .leadWrap.arrivedLeft/Right's own comment) - no JS measurement of the
+                          # *target* needed, only of the live starting point. Title/year deliberately
+                          # do not fade in with this - see below.
+                          #
+                          # Splash/index.tsx's own boundary flash (independent of Movie/timeline.ts
+                          # entirely) is what marks "the movie has stopped here": a plain white overlay
+                          # (.boundaryFlash) that fades in, holds, and fades back out, scheduled to
+                          # *start* before the leads' own arrive transition has fully finished (afterMs
+                          # = arrive's own `at` + LEAD_ARRIVE_MS - the flash's own fade-in duration) so
+                          # the white reaches full opacity right as the leads actually land - hiding
+                          # that exact instant rather than lingering on the fully-settled frame first.
+                          # `revealed` flips true the instant the white starts fading back OUT (not
+                          # once it's gone) - title/year (Movie.tsx) key off `revealed`, not `arrived`,
+                          # and render with a plain `display:none/block` toggle (no transition of their
+                          # own), so they're already fully present just as the white starts
+                          # dissolving, and the player watches them emerge gradually through it rather
+                          # than popping in once the screen has fully cleared. `stillReady` (a
+                          # separate boolean, since Act itself only models the movie proper) flips
+                          # true only once the whole flash sequence completes, and is what actually
+                          # gates the hint text ("輕點跳過" vs "輕點進入迷宮" - aligned with `revealed`
+                          # for the hint's own switch) and whether tapping calls onEnter vs. skips.
+                          # Skipping (a tap any time before `stillReady`) jumps `act` straight to
+                          # "arrive", sets `instant` true, and starts the very same boundary-flash
+                          # sequence with zero delay - `instant` adds `.stage.instant * { transition:
+                          # none !important; }`, so every remaining transition on the tree (the
+                          # leads' own glide included) resolves the instant `act` changes rather than
+                          # animating, hidden behind the flash that's already fading in on the very
+                          # next frame - "tap during the movie" reads as "immediately skip to the
+                          # white transition, then the still screen," not a compressed replay of the
+                          # glide.
     Game/                # The main screen: wires MouseContext, Screen, Maze, Dialog, Battle.
     Screen/              # Full-viewport container div. Sets base font-size via calc(13pt * var(--scale)).
     Maze/                 # Core game logic. index.tsx itself holds just MazeContainer (the player pin's own

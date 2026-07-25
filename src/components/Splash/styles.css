@@ -3,18 +3,95 @@
   user-select: none;
 }
 
-/* ---------- Flying intro ---------- */
-
-.flyingStage {
+.stage {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
 
-.rainbowBackground {
+/*
+ * Once the player skips ahead, Splash/index.tsx jumps `act` straight to
+ * "arrive" and sets this - every transition on the tree resolves instantly
+ * rather than animating, so the still card is already fully settled
+ * underneath by the time the boundary flash's own white fades back out (the
+ * flash itself is the transition the player sees, not a curtain over an
+ * animation still catching up). Animations (the flock's own drift/vortex
+ * loops) are left alone - they're already hidden by then regardless, via
+ * the same instantly-applied opacity/transform changes.
+ */
+.stage.instant * {
+  transition: none !important;
+}
+
+/* ---------- Void + spark (the "from nothing" beat) ---------- */
+
+.voidBackdrop {
   position: absolute;
   inset: 0;
+  z-index: 5;
+  background: #000;
+  opacity: 1;
+  transition: opacity 900ms ease-in;
+}
+
+.voidBackdrop.hidden {
+  opacity: 0;
+}
+
+/*
+ * A small glowing dot that appears alone in the void, then bursts into a
+ * huge, fading flash right as "bang" hits - the flash itself is what reveals
+ * .rainbowBackground underneath (both fade/transition on the same "bang"
+ * edge), rather than a hard cut from black to color.
+ */
+.spark {
+  position: absolute;
+  z-index: 6;
+  top: 50%;
+  left: 50%;
+  width: calc(16px * var(--scale));
+  height: calc(16px * var(--scale));
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 calc(40px * var(--scale)) calc(20px * var(--scale)) rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0);
+  transition: opacity 500ms ease-out, transform 500ms ease-out;
+}
+
+.spark.sparkAppearing {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.spark.sparkBursting {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(70);
+  transition: opacity 900ms ease-out 200ms, transform 900ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* ---------- Backgrounds ---------- */
+
+/*
+ * Oversized (100vmax, same convention BattleTransition's own rotating
+ * overlays use) and centered via translate(-50%, -50%) so the slow spin
+ * below never uncovers a corner, regardless of viewport aspect ratio.
+ * Two independent animations - one drifting the gradient's own colors via
+ * background-position, one slowly rotating the whole sheet via transform -
+ * run concurrently on different properties, giving the backdrop a genuine
+ * "living, swirling" motion through vortex/bloom rather than a static
+ * (if colorful) backdrop.
+ */
+.rainbowBackground {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 100vmax;
+  height: 100vmax;
+  opacity: 0;
+  transform: translate(-50%, -50%);
   background:
     linear-gradient(
       120deg,
@@ -27,7 +104,12 @@
       #ff5f6d
     );
   background-size: 400% 400%;
-  animation: splash-rainbow-shift 8s ease-in-out infinite;
+  transition: opacity 900ms ease-in-out;
+}
+
+.rainbowBackground.visible {
+  opacity: 1;
+  animation: splash-rainbow-shift 8s ease-in-out infinite, splash-rainbow-spin 40s linear infinite;
 }
 
 @keyframes splash-rainbow-shift {
@@ -44,64 +126,208 @@
   }
 }
 
-/*
- * Positioned at dead center (top/left: 50%) - the per-flyer @keyframes
- * (built in FlyingIntro.tsx) always re-center via translate(-50%, -50%)
- * before adding their own vw/vh offset, so this is just the anchor point.
- */
-.flyer {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  object-fit: contain;
-  filter: drop-shadow(0 calc(3px * var(--scale)) calc(4px * var(--scale)) rgba(0, 0, 0, 0.25));
-  animation-timing-function: ease-in-out;
-  animation-iteration-count: infinite;
-  pointer-events: none;
-}
-
-/* ---------- Still splash ---------- */
-
-.stillStage {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  animation: splash-fade-in 500ms ease-out;
-}
-
-@keyframes splash-fade-in {
-  0% {
-    opacity: 0;
+@keyframes splash-rainbow-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
   }
 
-  100% {
-    opacity: 1;
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
   }
 }
 
-.sky {
+.skyBackground {
   position: absolute;
   inset: 0;
+  z-index: 0;
+  opacity: 0;
   background: linear-gradient(180deg, #8fcdf2 0%, #d9f0fb 62%, #d9f0fb 100%);
+  transition: opacity 1200ms ease-in-out;
 }
 
+.skyBackground.visible {
+  opacity: 1;
+}
+
+/* Rises up slightly as it settles in - land emerging, not just a color swap. */
 .ground {
   position: absolute;
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 0;
   height: 36%;
+  opacity: 0;
+  transform: translateY(20%);
   background: linear-gradient(180deg, #bfe6a0 0%, #9fd67c 100%);
   border-top: calc(3px * var(--scale)) solid rgba(255, 255, 255, 0.5);
+  transition: opacity 1200ms ease-in-out, transform 1200ms ease-out;
 }
+
+.ground.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ---------- The flock (life appearing, then drifting away) ---------- */
+
+/*
+ * A zero-size anchor box at dead center - top/left: 50% already places its
+ * one point exactly at center, so no translate(-50%, -50%) is needed here
+ * (unlike a normally-sized box). Handles entrance (pop in from "vortex") and
+ * exit (fade/scale away from "converge") via plain opacity/transform
+ * transitions; the child .flyer's own position (a burst-out/draw-back-in
+ * transition before "bloom", then a continuous drift via @keyframes from
+ * "bloom" on - see Movie.tsx) is entirely independent of this.
+ */
+.flyerWrap {
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  transform: scale(0.2);
+  transition: opacity 400ms ease-out, transform 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.flyerWrap.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.flyerWrap.leaving {
+  opacity: 0;
+  transform: scale(1.4);
+  transition-duration: 700ms;
+}
+
+/* Every ordinary flock member renders as a silhouette (brightness(0) maps
+   every opaque pixel to black while keeping the icon's own alpha shape) -
+   only the two leads below ever reveal their true colors. */
+.flyer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  object-fit: contain;
+  filter: brightness(0) drop-shadow(0 calc(3px * var(--scale)) calc(4px * var(--scale)) rgba(0, 0, 0, 0.25));
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+}
+
+/* ---------- The leads: 小風/小馬, standing out from the flock ---------- */
+
+/*
+ * Unlike .flyerWrap, this is a *real-sized* box (matching the final resting
+ * sprite's own size) centered on the stage via negative margins, not a
+ * zero-size anchor - so it can host ordinarily-positioned children
+ * (.leadShadow/.leadSprite, using the same inset/bottom-percentage scheme
+ * Maze's own sprite/footShadow pairing uses) and so the "arrive" glide below
+ * can express its target purely as a transform. This element itself (not a
+ * child img) carries the vortex burst-out/draw-back-in transition and the
+ * flying @keyframes alike, scale included (see LeadFlyer.tsx and flyers.ts's
+ * buildLeadKeyframeCss) - no scale of its own is declared here, since a
+ * running transition/animation on `transform` fully overrides any static
+ * value on the same property/element, and LeadFlyer.tsx needs this one
+ * element's live transform to already be the complete picture (position +
+ * rotation + scale together) when it captures it the instant "arrive" fires
+ * - see that file's own comment for why a plain CSS transition can't do
+ * that hand-off by itself.
+ */
+.leadWrap {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: calc(150px * var(--scale));
+  height: calc(150px * var(--scale));
+  margin-left: calc(-75px * var(--scale));
+  margin-top: calc(-75px * var(--scale));
+  opacity: 0;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+
+  /* transform's duration must match flyers.ts's LEAD_ARRIVE_MS. */
+  transition: opacity 400ms ease-out, transform 3200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.leadWrap.visible {
+  opacity: 1;
+}
+
+/*
+ * Targets expressed purely via calc() relative to the stage's own
+ * center - Screen fills the full viewport, so 1vh/1vw here really is 1% of
+ * the stage's own height/width, letting this land at exactly the same spot
+ * the old static "duo" layout (bottom: 20%, a 70px*scale gap between two
+ * 150px*scale boxes) used to place these two, without measuring anything
+ * live. Vertical target: the resting box's own center sits 30vh above the
+ * stage's vertical center (80vh from top, i.e. bottom:20% + half its own
+ * height, minus the 50vh center line). Horizontal: half the gap plus half
+ * a box's width (35 + 75 = 110) to each side of center.
+ */
+.leadWrap.arrivedLeft {
+  transform: translate(calc(-110px * var(--scale)), calc(30vh - 75px * var(--scale))) scale(1);
+}
+
+.leadWrap.arrivedRight {
+  transform: translate(calc(110px * var(--scale)), calc(30vh - 75px * var(--scale))) scale(1);
+}
+
+.leadShadow {
+  position: absolute;
+  bottom: 4%;
+  left: 50%;
+  width: 55%;
+  height: 14%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  filter: blur(calc(2px * var(--scale)));
+  opacity: 0;
+  transition: opacity 600ms ease-out;
+}
+
+.leadShadow.visible {
+  opacity: 1;
+}
+
+.leadSprite {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+
+  /* Silhouetted like the rest of the flock at first (see .flyer above) -
+     transitions to full color as it glides home, so "arriving" reads as
+     one continuous grow + travel + reveal motion. Duration must match
+     flyers.ts's LEAD_ARRIVE_MS. */
+  filter: brightness(0) drop-shadow(0 calc(4px * var(--scale)) calc(5px * var(--scale)) rgba(0, 0, 0, 0.2));
+  transition: filter 3200ms ease-in-out;
+}
+
+.leadSprite.revealed {
+  filter: brightness(1) drop-shadow(0 calc(4px * var(--scale)) calc(5px * var(--scale)) rgba(0, 0, 0, 0.2));
+}
+
+/*
+ * ---------- Arrival: title/year ----------
+ * Deliberately no transition here - these just appear outright the instant
+ * `stillReady` flips true (see Movie.tsx), right after the boundary flash's
+ * white has finished fading away, rather than fading/animating in on top of
+ * the reveal.
+ */
 
 .title {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   top: 9%;
   left: 50%;
   margin: 0;
+  display: none;
   transform: translateX(-50%);
   font-size: calc(28pt * var(--scale));
   font-weight: 900;
@@ -115,50 +341,17 @@
     calc(-2px * var(--scale)) calc(2px * var(--scale)) 0 #fff;
 }
 
-.duo {
-  position: absolute;
-  z-index: 1;
-  left: 50%;
-  bottom: 20%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: flex-end;
-  gap: calc(70px * var(--scale));
-}
-
-.character {
-  position: relative;
-  width: calc(150px * var(--scale));
-  height: calc(150px * var(--scale));
-}
-
-.shadow {
-  position: absolute;
-  bottom: 4%;
-  left: 50%;
-  width: 55%;
-  height: 14%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.35);
-  border-radius: 50%;
-  filter: blur(calc(2px * var(--scale)));
-}
-
-.characterSprite {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 calc(4px * var(--scale)) calc(5px * var(--scale)) rgba(0, 0, 0, 0.2));
+.title.visible {
+  display: block;
 }
 
 .year {
   position: absolute;
-  z-index: 1;
+  z-index: 3;
   bottom: 8%;
   left: 50%;
   margin: 0;
+  display: none;
   transform: translateX(-50%);
   font-size: calc(16pt * var(--scale));
   font-weight: 700;
@@ -166,11 +359,15 @@
   text-shadow: 0 calc(2px * var(--scale)) calc(4px * var(--scale)) rgba(0, 0, 0, 0.3);
 }
 
-/* ---------- Shared tap-to-continue hint ---------- */
+.year.visible {
+  display: block;
+}
 
+/* Above every other layer (including .spark/.voidBackdrop) so the skip hint
+   stays legible throughout the whole movie, not just once things settle. */
 .hint {
   position: absolute;
-  z-index: 1;
+  z-index: 10;
   bottom: calc(10px * var(--scale));
   left: 50%;
   margin: 0;
@@ -190,4 +387,23 @@
   50% {
     opacity: 1;
   }
+}
+
+/*
+ * The white "page turn" punctuating the boundary between the movie and the
+ * still card becoming tappable (see Splash/index.tsx) - a plain symmetric
+ * fade in/out, no pattern, sitting above literally everything else here.
+ */
+.boundaryFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 9000;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 300ms ease-in-out;
+}
+
+.boundaryFlash.flashing {
+  opacity: 1;
 }

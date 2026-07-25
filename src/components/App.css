@@ -1,0 +1,19 @@
+/*
+ * The splash's exit transition: fades in fully opaque (masking the swap from
+ * Splash to the routed app underneath, see App.tsx), then fades back out to
+ * reveal it. --exit-duration is set inline per direction (cover vs reveal
+ * take different lengths), so this file only owns the shared shape.
+ */
+.exitOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 9000;
+  background: #fff;
+  opacity: 0;
+  pointer-events: auto;
+  transition: opacity var(--exit-duration) ease-in-out;
+}
+
+.exitOverlay.covered {
+  opacity: 1;
+}
