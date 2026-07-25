@@ -1,0 +1,193 @@
+.splash {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ---------- Flying intro ---------- */
+
+.flyingStage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.rainbowBackground {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      120deg,
+      #ff5f6d,
+      #ffc371,
+      #f9f871,
+      #6dd5ed,
+      #6a82fb,
+      #a770ef,
+      #ff5f6d
+    );
+  background-size: 400% 400%;
+  animation: splash-rainbow-shift 8s ease-in-out infinite;
+}
+
+@keyframes splash-rainbow-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/*
+ * Positioned at dead center (top/left: 50%) - the per-flyer @keyframes
+ * (built in FlyingIntro.tsx) always re-center via translate(-50%, -50%)
+ * before adding their own vw/vh offset, so this is just the anchor point.
+ */
+.flyer {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  object-fit: contain;
+  filter: drop-shadow(0 calc(3px * var(--scale)) calc(4px * var(--scale)) rgba(0, 0, 0, 0.25));
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  pointer-events: none;
+}
+
+/* ---------- Still splash ---------- */
+
+.stillStage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  animation: splash-fade-in 500ms ease-out;
+}
+
+@keyframes splash-fade-in {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.sky {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, #8fcdf2 0%, #d9f0fb 62%, #d9f0fb 100%);
+}
+
+.ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36%;
+  background: linear-gradient(180deg, #bfe6a0 0%, #9fd67c 100%);
+  border-top: calc(3px * var(--scale)) solid rgba(255, 255, 255, 0.5);
+}
+
+.title {
+  position: absolute;
+  z-index: 1;
+  top: 9%;
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: calc(28pt * var(--scale));
+  font-weight: 900;
+  color: #ff5a8a;
+  letter-spacing: calc(2px * var(--scale));
+  white-space: nowrap;
+  text-shadow:
+    calc(2px * var(--scale)) calc(2px * var(--scale)) 0 #fff,
+    calc(-2px * var(--scale)) calc(-2px * var(--scale)) 0 #fff,
+    calc(2px * var(--scale)) calc(-2px * var(--scale)) 0 #fff,
+    calc(-2px * var(--scale)) calc(2px * var(--scale)) 0 #fff;
+}
+
+.duo {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  bottom: 20%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-end;
+  gap: calc(70px * var(--scale));
+}
+
+.character {
+  position: relative;
+  width: calc(150px * var(--scale));
+  height: calc(150px * var(--scale));
+}
+
+.shadow {
+  position: absolute;
+  bottom: 4%;
+  left: 50%;
+  width: 55%;
+  height: 14%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 50%;
+  filter: blur(calc(2px * var(--scale)));
+}
+
+.characterSprite {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 calc(4px * var(--scale)) calc(5px * var(--scale)) rgba(0, 0, 0, 0.2));
+}
+
+.year {
+  position: absolute;
+  z-index: 1;
+  bottom: 8%;
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: calc(16pt * var(--scale));
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 calc(2px * var(--scale)) calc(4px * var(--scale)) rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- Shared tap-to-continue hint ---------- */
+
+.hint {
+  position: absolute;
+  z-index: 1;
+  bottom: calc(10px * var(--scale));
+  left: 50%;
+  margin: 0;
+  transform: translateX(-50%);
+  font-size: calc(9pt * var(--scale));
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 calc(1px * var(--scale)) calc(3px * var(--scale)) rgba(0, 0, 0, 0.4);
+  animation: splash-hint-pulse 1500ms ease-in-out infinite;
+}
+
+@keyframes splash-hint-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}

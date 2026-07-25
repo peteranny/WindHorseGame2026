@@ -28,7 +28,23 @@ src/
                          # button styling stays a self-contained CSS Module as usual.
   globals.d.ts          # __DEPLOY_DATE__, the google.script.run (GAS) surface, and *.css/*.txt module typings.
   components/
-    App.tsx             # Router shell: "/" -> Game, "/settings" -> Settings.
+    App.tsx             # Gates every route behind Splash (app-launch, local showSplash state - not
+                        # persisted, so it replays every page load) before the router shell itself:
+                        # "/" -> Game, "/settings" -> Settings.
+    Splash/               # The app-launch splash. index.tsx holds a two-phase state machine
+                          # ("flying" | "still") plus an onEnter prop (called on tapping the still
+                          # phase, flips App's showSplash off): FlyingIntro.tsx (a rainbow-shifting
+                          # background - a wide animated linear-gradient - plus a flock of monster/
+                          # goal/player icons drifting on random per-instance CSS keyframes, built into
+                          # one <style> tag since each flyer's own path is randomized at mount, see
+                          # timing.ts's INTRO_DURATION_MS - 5s - for the auto-advance, tapping anywhere
+                          # during it skips straight to "still" instead) and StillSplash.tsx (the
+                          # resting title card - playerSprite.png and goalSprite.png standing face to
+                          # face with their own footShadow-style ellipse each, title "小風小馬遊戲"
+                          # above, "2026" below - relies on the player sprite's native art already
+                          # facing right and the goal sprite's fixed facing left, see "The goal tile"
+                          # below, so placing 小風 on the left/小馬 on the right needs no mirroring to
+                          # have them look at each other). Tapping "still" calls onEnter.
     Game/                # The main screen: wires MouseContext, Screen, Maze, Dialog, Battle.
     Screen/              # Full-viewport container div. Sets base font-size via calc(13pt * var(--scale)).
     Maze/                 # Core game logic. index.tsx itself holds just MazeContainer (the player pin's own
