@@ -156,7 +156,7 @@ const Movie = ({ act, instant, revealed }: MovieProps) => {
       />
 
       <h1 className={cn(styles.title, revealed && styles.visible)}>小風の生日禮物</h1>
-      <p className={cn(styles.year, revealed && styles.visible)}>2026</p>
+      <p className={cn(styles.year, revealed && styles.visible)}>2026/07/31</p>
     </div>
   );
 };

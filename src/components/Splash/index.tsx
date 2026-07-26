@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import cn from "classnames";
 import Screen from "../Screen";
 import Movie from "./Movie";
-import { Act, ACT_TIMING, hasReached } from "./timeline";
+import { Act, ACT_TIMING } from "./timeline";
 import { LEAD_ARRIVE_MS } from "./flyers";
 import styles from "./styles.css";
 
@@ -78,9 +78,16 @@ const Splash = ({ onEnter }: SplashProps) => {
       onEnter();
       return;
     }
-    // Already mid-boundary-sequence - let it finish rather than restarting.
-    if (hasReached(act, "arrive")) return;
-
+    // Any tap before `stillReady` skips straight to the flash - including
+    // mid-"arrive", before the boundary flash has actually started. `act`
+    // itself flips to "arrive" well before the flash does (the flash only
+    // starts once the leads' own glide is nearly done - see the mount
+    // effect below), so gating this on `hasReached(act, "arrive")` used to
+    // leave a multi-second window where taps were silently ignored right
+    // when a player is most likely to tap, waiting for the movie to
+    // finally end. Re-triggering here (even if the flash is already
+    // running) just restarts the same instant-flash sequence, which is
+    // harmless - it still converges on `stillReady` either way.
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
     // Jump straight to the final frame and make every remaining CSS
