@@ -6,8 +6,10 @@ import {
   EXTRA_FLYER_COUNT,
   VORTEX_OUT_MS,
   VORTEX_RETURN_MS,
+  VORTEX_RETURN_TURN_DEG,
   buildFlyer,
   buildKeyframeCss,
+  buildPolarTransform,
   buildLeads,
   buildLeadKeyframeCss,
 } from "./flyers";
@@ -68,19 +70,27 @@ const Movie = ({ act, instant, revealed }: MovieProps) => {
 
       {flyers.map((flyer, index) => {
         // Before "bloom": a plain two-step transition - burst out to a
-        // random point, then draw back to center - rather than the
-        // infinite scattered-drift @keyframes, which only takes over once
-        // that draw-back-in has landed exactly at the same (0, 0) point it
-        // starts from (see buildKeyframeCss's own comment). Stays at the
-        // center value until "vortex" actually fires (not just "not yet
+        // random point (straight radial expansion), then draw back to
+        // center while sweeping a further quarter turn (a real orbital
+        // arc, via buildPolarTransform's rotate/translateX/rotate
+        // composition) - rather than the infinite scattered-drift
+        // @keyframes, which only takes over once that draw-back-in has
+        // landed exactly at the same (0, 0) point it starts from (see
+        // buildKeyframeCss's own comment). Stays at the resting (radius 0)
+        // value until "vortex" actually fires (not just "not yet
         // returning") - otherwise this render's very first paint would
         // already show it sitting at the burst point, since a CSS
         // transition only plays when a property's value *changes* after
         // mount, never on its initial value.
-        const vortexTransform =
-          vortexed && !vortexReturning
-            ? `translate(calc(-50% + ${flyer.vortexPoint.x}vh), calc(-50% + ${flyer.vortexPoint.y}vh))`
-            : "translate(-50%, -50%)";
+        const angle = vortexReturning
+          ? flyer.vortexPoint.angle + VORTEX_RETURN_TURN_DEG
+          : flyer.vortexPoint.angle;
+        const radius = vortexed && !vortexReturning ? flyer.vortexPoint.radius : 0;
+        const vortexTransform = `translate(-50%, -50%) ${buildPolarTransform(
+          angle,
+          radius,
+          flyer.rotateFrom
+        )}`;
         return (
           <div
             key={index}
@@ -114,7 +124,7 @@ const Movie = ({ act, instant, revealed }: MovieProps) => {
                       width: `calc(${flyer.size}px * var(--scale))`,
                       height: `calc(${flyer.size}px * var(--scale))`,
                       animationName: "none",
-                      transform: `${vortexTransform} rotate(${flyer.rotateFrom}deg)`,
+                      transform: vortexTransform,
                       transition: `transform ${vortexReturning ? VORTEX_RETURN_MS : VORTEX_OUT_MS}ms ${
                         vortexReturning ? "ease-in" : "ease-out"
                       }`,

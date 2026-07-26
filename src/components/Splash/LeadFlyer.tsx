@@ -1,7 +1,14 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
 import cn from "classnames";
 import styles from "./styles.css";
-import { Lead, LEAD_FLOCK_SCALE, VORTEX_OUT_MS, VORTEX_RETURN_MS } from "./flyers";
+import {
+  Lead,
+  LEAD_FLOCK_SCALE,
+  VORTEX_OUT_MS,
+  VORTEX_RETURN_MS,
+  VORTEX_RETURN_TURN_DEG,
+  buildPolarTransform,
+} from "./flyers";
 
 interface LeadFlyerProps {
   lead: Lead;
@@ -65,19 +72,21 @@ const LeadFlyer = ({ lead, vortexed, vortexReturning, bloomed, arrived }: LeadFl
   }, [stopped]);
 
   // Before "bloom": a plain two-step transition - burst out to a random
-  // point, then draw back to center - rather than the infinite scattered-
-  // drift @keyframes, which only takes over once that draw-back-in has
-  // landed exactly at the same (0, 0) point it starts from. Stays at the
-  // center value until "vortex" actually fires (not just "not yet
-  // returning") - otherwise this render's very first paint would already
-  // show it sitting at the burst point, since a CSS transition only plays
-  // when a property's value *changes* after mount, never on its initial
-  // value.
-  const restingTransform = `translate(0, 0) rotate(${lead.rotateFrom}deg) scale(${LEAD_FLOCK_SCALE})`;
-  const vortexTransform =
-    vortexed && !vortexReturning
-      ? `translate(${lead.vortexPoint.x}vh, ${lead.vortexPoint.y}vh) rotate(${lead.rotateFrom}deg) scale(${LEAD_FLOCK_SCALE})`
-      : restingTransform;
+  // point (straight radial expansion), then draw back to center while
+  // sweeping a further quarter turn (a real orbital arc, via
+  // buildPolarTransform's rotate/translateX/rotate composition) - rather
+  // than the infinite scattered-drift @keyframes, which only takes over
+  // once that draw-back-in has landed exactly at the same (0, 0) point it
+  // starts from. Stays at the resting (radius 0) value until "vortex"
+  // actually fires (not just "not yet returning") - otherwise this
+  // render's very first paint would already show it sitting at the burst
+  // point, since a CSS transition only plays when a property's value
+  // *changes* after mount, never on its initial value.
+  const angle = vortexReturning
+    ? lead.vortexPoint.angle + VORTEX_RETURN_TURN_DEG
+    : lead.vortexPoint.angle;
+  const radius = vortexed && !vortexReturning ? lead.vortexPoint.radius : 0;
+  const vortexTransform = `${buildPolarTransform(angle, radius, lead.rotateFrom)} scale(${LEAD_FLOCK_SCALE})`;
 
   const style: React.CSSProperties = stopped
     ? { transitionDelay: `${lead.appearDelay}ms` }

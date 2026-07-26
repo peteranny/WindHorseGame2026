@@ -345,25 +345,31 @@
   display: block;
 }
 
+/* Sits directly below .title (not down at the bottom of the screen) -
+   .hint is the only thing anchored to the bottom now. */
 .year {
   position: absolute;
   z-index: 3;
-  bottom: 8%;
+  top: 28%;
   left: 50%;
   margin: 0;
   display: none;
   transform: translateX(-50%);
   font-size: calc(16pt * var(--scale));
   font-weight: 700;
-  color: #fff;
-  text-shadow: 0 calc(2px * var(--scale)) calc(4px * var(--scale)) rgba(0, 0, 0, 0.3);
+  color: #ff5a8a;
+  text-shadow:
+    calc(1px * var(--scale)) calc(1px * var(--scale)) 0 #fff,
+    calc(-1px * var(--scale)) calc(-1px * var(--scale)) 0 #fff,
+    calc(1px * var(--scale)) calc(-1px * var(--scale)) 0 #fff,
+    calc(-1px * var(--scale)) calc(1px * var(--scale)) 0 #fff;
 }
 
 .year.visible {
   display: block;
 }
 
-/* Above every other layer (including .spark/.voidBackdrop) so the skip hint
+/* Above every other layer (including .spark/.voidBackdrop) so the hint
    stays legible throughout the whole movie, not just once things settle. */
 .hint {
   position: absolute;
@@ -391,8 +397,15 @@
 
 /*
  * The white "page turn" punctuating the boundary between the movie and the
- * still card becoming tappable (see Splash/index.tsx) - a plain symmetric
- * fade in/out, no pattern, sitting above literally everything else here.
+ * still card becoming tappable (see Splash/index.tsx) - sitting above
+ * literally everything else here. The fade-IN's own duration is set inline
+ * per instance (--flash-in-duration) since it differs by trigger: the
+ * natural hands-off playthrough fades in gracefully (overlapping the
+ * leads' own tail-end glide), but skipping ahead needs the white to appear
+ * *instantly* - otherwise the player would glimpse the fully-settled last
+ * frame for a moment before it's covered. The fade-OUT is always the same
+ * graceful reveal regardless of how the flash got triggered, so it's a
+ * plain fixed duration on the base rule (used once `.flashing` is removed).
  */
 .boundaryFlash {
   position: absolute;
@@ -406,4 +419,5 @@
 
 .boundaryFlash.flashing {
   opacity: 1;
+  transition: opacity var(--flash-in-duration, 300ms) ease-in-out;
 }

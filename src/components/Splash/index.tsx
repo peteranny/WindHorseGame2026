@@ -11,15 +11,19 @@ interface SplashProps {
 }
 
 // The white "page turn" that punctuates the boundary between the movie and
-// the still card becoming the tappable resting state. It deliberately
-// starts *before* the leads' own "arrive" glide (flyers.ts's LEAD_ARRIVE_MS)
-// has fully finished - overlapping its last stretch - so the white reaches
-// full opacity right as the leads actually land, hiding that exact instant
-// rather than lingering on the fully-settled frame first. Fading back out
-// then reveals the now-completely-still card in one clean "boom".
-const FLASH_IN_MS = 300;
+// the still card becoming the tappable resting state. On the natural,
+// unskipped playthrough it deliberately starts *before* the leads' own
+// "arrive" glide (flyers.ts's LEAD_ARRIVE_MS) has fully finished -
+// overlapping its last stretch - so the white reaches full opacity right as
+// the leads actually land, hiding that exact instant rather than lingering
+// on the fully-settled frame first. Skipping ahead instead shows the white
+// *instantly* (see scheduleBoundary's own flashInMs param) - there's no
+// glide tail left to overlap, so fading in gracefully would mean the player
+// glimpses the already-settled last frame for a moment before the flash
+// covers it. Fading back out is always the same graceful reveal either way.
 const FLASH_HOLD_MS = 250;
 const FLASH_OUT_MS = 300;
+const NATURAL_FLASH_IN_MS = 300;
 
 const ARRIVE_AT = ACT_TIMING.find((entry) => entry.act === "arrive")!.at;
 
@@ -30,6 +34,7 @@ const ARRIVE_AT = ACT_TIMING.find((entry) => entry.act === "arrive")!.at;
 const Splash = ({ onEnter }: SplashProps) => {
   const [act, setAct] = useState<Act>("void");
   const [flashing, setFlashing] = useState(false);
+  const [flashInMs, setFlashInMs] = useState(NATURAL_FLASH_IN_MS);
   // Flips true the instant the white starts fading back OUT (not once it's
   // fully gone) - the title/year are already sitting there, fully rendered,
   // by that point (see Movie.tsx), so as the white dissolves the player
@@ -40,8 +45,9 @@ const Splash = ({ onEnter }: SplashProps) => {
   const [instant, setInstant] = useState(false);
   const timersRef = useRef<number[]>([]);
 
-  const scheduleBoundary = (afterMs: number) => {
+  const scheduleBoundary = (afterMs: number, flashInDurationMs: number) => {
     const delay = Math.max(afterMs, 0);
+    setFlashInMs(flashInDurationMs);
     timersRef.current.push(
       window.setTimeout(() => setFlashing(true), delay),
       window.setTimeout(
@@ -49,11 +55,11 @@ const Splash = ({ onEnter }: SplashProps) => {
           setFlashing(false);
           setRevealed(true);
         },
-        delay + FLASH_IN_MS + FLASH_HOLD_MS
+        delay + flashInDurationMs + FLASH_HOLD_MS
       ),
       window.setTimeout(
         () => setStillReady(true),
-        delay + FLASH_IN_MS + FLASH_HOLD_MS + FLASH_OUT_MS
+        delay + flashInDurationMs + FLASH_HOLD_MS + FLASH_OUT_MS
       )
     );
   };
@@ -62,7 +68,7 @@ const Splash = ({ onEnter }: SplashProps) => {
     timersRef.current = ACT_TIMING.map(({ act: nextAct, at }) =>
       window.setTimeout(() => setAct(nextAct), at)
     );
-    scheduleBoundary(ARRIVE_AT + LEAD_ARRIVE_MS - FLASH_IN_MS);
+    scheduleBoundary(ARRIVE_AT + LEAD_ARRIVE_MS - NATURAL_FLASH_IN_MS, NATURAL_FLASH_IN_MS);
     return () => timersRef.current.forEach(clearTimeout);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -77,20 +83,23 @@ const Splash = ({ onEnter }: SplashProps) => {
 
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
-    // Jump straight to the final frame (hidden behind the flash, which
-    // starts immediately below) and make every remaining CSS transition on
-    // it instant - so by the time the white fades back out, the still card
-    // is already fully settled rather than still catching up.
+    // Jump straight to the final frame and make every remaining CSS
+    // transition on it instant, then cover it with an instantly-opaque
+    // flash (flashInDurationMs: 0) - so the player never sees the settled
+    // last frame at all, only the flash fading into the still screen.
     setInstant(true);
     setAct("arrive");
-    scheduleBoundary(0);
+    scheduleBoundary(0, 0);
   };
 
   return (
     <Screen className={styles.splash} onClick={handleClick}>
       <Movie act={act} instant={instant} revealed={revealed} />
-      <p className={styles.hint}>{revealed ? "輕點進入迷宮" : "輕點跳過"}</p>
-      <div className={cn(styles.boundaryFlash, flashing && styles.flashing)} />
+      <p className={styles.hint}>輕點以繼續</p>
+      <div
+        className={cn(styles.boundaryFlash, flashing && styles.flashing)}
+        style={{ "--flash-in-duration": `${flashInMs}ms` } as React.CSSProperties}
+      />
     </Screen>
   );
 };

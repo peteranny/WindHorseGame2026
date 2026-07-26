@@ -12,8 +12,8 @@ const WAYPOINT_COUNT = 4;
 const APPEAR_SPREAD_MS = 200;
 
 export interface VortexPoint {
-  x: number;
-  y: number;
+  angle: number;
+  radius: number;
 }
 
 export interface Flyer {
@@ -29,21 +29,36 @@ export interface Flyer {
 
 const randomBetween = (min: number, max: number) => min + Math.random() * (max - min);
 
-// A single point (in vh, both axes - so it reads as a true circle rather
-// than stretching with the viewport's own aspect ratio) at a random angle
-// and radius from the stage's dead center - the "expand out" target of the
-// vortex's two-step CSS transition (see Movie.tsx/LeadFlyer.tsx): plain
-// `transition: transform` between a couple of discrete points, rather than
-// a hand-authored curve of many @keyframes steps.
+// A random angle (degrees) and radius (in vh, so it reads as a true circle
+// rather than stretching with the viewport's own aspect ratio) from the
+// stage's dead center - the flock's own burst-out target. Kept as polar
+// coordinates, not pre-converted to x/y, since the draw-back-in phase needs
+// to sweep the angle by a further quarter turn while the radius shrinks
+// (see buildPolarTransform) - a real orbital arc, not a straight line back
+// to center.
 const VORTEX_MIN_RADIUS_VH = 14;
 const VORTEX_MAX_RADIUS_VH = 26;
 
-const buildVortexPoint = (): VortexPoint => {
-  const angle = randomBetween(0, 360);
-  const radius = randomBetween(VORTEX_MIN_RADIUS_VH, VORTEX_MAX_RADIUS_VH);
-  const rad = (angle * Math.PI) / 180;
-  return { x: radius * Math.cos(rad), y: radius * Math.sin(rad) };
-};
+const buildVortexPoint = (): VortexPoint => ({
+  angle: randomBetween(0, 360),
+  radius: randomBetween(VORTEX_MIN_RADIUS_VH, VORTEX_MAX_RADIUS_VH),
+});
+
+// Expresses a point in polar terms as a transform *function list*
+// (rotate/translateX/rotate) rather than a plain translate(x, y) - so that
+// the draw-back-in phase, which sweeps `angle` by a further quarter turn
+// while `radius` shrinks to 0 (see Movie.tsx/LeadFlyer.tsx), traces a real
+// orbital arc: CSS interpolates each transform function's own parameter
+// independently when the function list matches between the "before" and
+// "after" states, so rotate and translateX both animate at once. The
+// trailing rotate(-angle + rotateFrom) counter-rotates the icon's own
+// orientation back - without it, the icon would visibly spin through the
+// same sweep its position orbits through; with it, the icon's own rotation
+// stays at a constant `rotateFrom` throughout (matching the regular drift
+// keyframe's own resting rotation exactly), regardless of `angle`, since
+// the outer and inner rotations always cancel to leave just `rotateFrom`.
+export const buildPolarTransform = (angle: number, radiusVh: number, rotateFrom: number) =>
+  `rotate(${angle}deg) translateX(${radiusVh}vh) rotate(${(-angle + rotateFrom).toFixed(2)}deg)`;
 
 // How long the flock's own expand-out and draw-back-in transitions each
 // take - must stay comfortably under timeline.ts's own vortex->vortexReturn
@@ -51,6 +66,11 @@ const buildVortexPoint = (): VortexPoint => {
 // off mid-transition) before the next stage swaps in.
 export const VORTEX_OUT_MS = 450;
 export const VORTEX_RETURN_MS = 450;
+
+// The draw-back-in phase sweeps every flyer/lead's own vortexPoint.angle by
+// this much (a quarter turn) while its radius shrinks to 0 - a real orbital
+// revolution into center, not a straight radial pull-back.
+export const VORTEX_RETURN_TURN_DEG = 90;
 
 // Only the 39 monster icons - 小風/小馬 are their own dedicated leads (see
 // below), not part of this random pool, so they never show up twice.
