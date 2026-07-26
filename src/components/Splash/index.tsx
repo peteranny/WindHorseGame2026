@@ -78,16 +78,19 @@ const Splash = ({ onEnter }: SplashProps) => {
       onEnter();
       return;
     }
-    // Any tap before `stillReady` skips straight to the flash - including
-    // mid-"arrive", before the boundary flash has actually started. `act`
-    // itself flips to "arrive" well before the flash does (the flash only
-    // starts once the leads' own glide is nearly done - see the mount
-    // effect below), so gating this on `hasReached(act, "arrive")` used to
-    // leave a multi-second window where taps were silently ignored right
-    // when a player is most likely to tap, waiting for the movie to
-    // finally end. Re-triggering here (even if the flash is already
-    // running) just restarts the same instant-flash sequence, which is
-    // harmless - it still converges on `stillReady` either way.
+    // Once the boundary flash has actually started - or already finished
+    // fading in and is now revealing the still card - let it run its
+    // course rather than restarting it: `flashing`/`revealed` cover that
+    // whole window, so a tap landing anywhere in it (including tapping
+    // fast/repeatedly) is a no-op instead of looping the flash forever.
+    // Before that window (including mid-"arrive", before the flash has
+    // started - `act` itself flips to "arrive" well before the flash does,
+    // once the leads' own glide is nearly done, see the mount effect
+    // below), a tap always skips straight to it - gating this on `act`
+    // reaching "arrive" instead used to leave a multi-second dead zone
+    // where taps did nothing right when a player is most likely to tap.
+    if (flashing || revealed) return;
+
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
     // Jump straight to the final frame and make every remaining CSS
