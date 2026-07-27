@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useMeasure } from "react-use";
 import { Link } from "react-router-dom";
 import cn from "classnames";
@@ -27,6 +27,16 @@ const Game = () => {
   const [mouse, handleMouseClick] = useMouse();
   const [ref, { width, height }] = useMeasure<HTMLDivElement>();
   const center: [number, number] = [width / 2, height / 2];
+  // useMeasure reports width/height as 0 until the container's first real
+  // layout pass, so backgroundOffsetX/Y below start centered on a bogus
+  // [0, 0] origin and jump to the real, player-centered offset once
+  // measured - without this flag that jump would visibly transition (see
+  // the background-position transition below) instead of appearing already
+  // in place on first paint.
+  const [hasMeasured, setHasMeasured] = useState(false);
+  useEffect(() => {
+    if (width > 0 && height > 0) setHasMeasured(true);
+  }, [width, height]);
   const [playerX, playerY] = useGameStore((state) => state.position);
   const stateKey = useGameStore((state) => state.stateKey);
   const isDevMode = isDevStateKey(stateKey);
@@ -86,8 +96,13 @@ const Game = () => {
                     backgroundPosition: `${backgroundOffsetX}px ${backgroundOffsetY}px`,
                     // Matches Maze's own .withOffset transition (left/top
                     // 0.3s) so the backdrop slides in lockstep with the
-                    // grid instead of snapping into place ahead of it.
-                    transition: "background-position 0.3s",
+                    // grid instead of snapping into place ahead of it - but
+                    // only once hasMeasured, so the very first jump from the
+                    // bogus [0, 0]-centered offset to the real one doesn't
+                    // itself visibly animate.
+                    transition: hasMeasured
+                      ? "background-position 0.3s"
+                      : "none",
                   }}
                 >
                   <div
