@@ -17,7 +17,7 @@
 // Battle/attackGroups.ts) within their first few captures, not several dozen
 // monsters in. The remaining ids just fill in afterward in their natural order.
 export const MONSTER_MAP_ORDER: number[] = [
-  0, 4, 5, 1, 17, 31, 13, 14, 18, 32,
+  0, 4, 5, 1, 13, 31, 17, 14, 18, 32,
   2, 3, 6, 7, 8, 9, 10, 11, 12, 15,
   16, 19, 20, 21, 22, 23, 24, 25, 26, 27,
   28, 29, 30, 33, 34, 35, 36, 37, 38,
