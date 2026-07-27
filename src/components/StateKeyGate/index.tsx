@@ -17,10 +17,8 @@ const StateKeyGate = ({ children }: StateKeyGateProps) => {
   useEffect(() => {
     if (stateKey) {
       hydrate();
-    } else if (typeof google === "undefined") {
-      setStateKey("local-dev");
     }
-  }, [stateKey, hydrate, setStateKey]);
+  }, [stateKey, hydrate]);
 
   if (!stateKey) {
     return (
