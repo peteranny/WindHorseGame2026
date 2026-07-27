@@ -4,6 +4,7 @@ import cn from "classnames";
 import Game from "./Game";
 import Settings from "./Settings";
 import Splash from "./Splash";
+import StateKeyGate from "./StateKeyGate";
 import styles from "./App.css";
 
 type Stage = "splash" | "exiting" | "app";
@@ -37,36 +38,40 @@ const App = () => {
     </Switch>
   );
 
-  if (stage === "app") return routes;
-
   // Splash stays mounted (rather than the routed app) for as long as the
   // overlay hasn't fully covered the screen yet - the instant it flips to
   // reveal, the swap happens underneath solid white, invisibly.
   const showSplash = stage === "splash" || covered;
 
   return (
-    <>
-      {showSplash ? (
-        <Splash
-          onEnter={() => {
-            setCovered(true);
-            setStage("exiting");
-          }}
-        />
-      ) : (
+    <StateKeyGate>
+      {stage === "app" ? (
         routes
+      ) : (
+        <>
+          {showSplash ? (
+            <Splash
+              onEnter={() => {
+                setCovered(true);
+                setStage("exiting");
+              }}
+            />
+          ) : (
+            routes
+          )}
+          {stage === "exiting" && (
+            <div
+              className={cn(styles.exitOverlay, covered && styles.covered)}
+              style={
+                {
+                  "--exit-duration": `${covered ? COVER_MS : REVEAL_MS}ms`,
+                } as React.CSSProperties
+              }
+            />
+          )}
+        </>
       )}
-      {stage === "exiting" && (
-        <div
-          className={cn(styles.exitOverlay, covered && styles.covered)}
-          style={
-            {
-              "--exit-duration": `${covered ? COVER_MS : REVEAL_MS}ms`,
-            } as React.CSSProperties
-          }
-        />
-      )}
-    </>
+    </StateKeyGate>
   );
 };
 

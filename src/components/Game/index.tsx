@@ -8,7 +8,6 @@ import Screen from "../Screen";
 import Maze from "../Maze";
 import Dialog from "../Dialog";
 import Battle from "../Battle";
-import StateKeyGate from "../StateKeyGate";
 import MiniMap from "../MiniMap";
 import BattleTransition from "../BattleTransition";
 import { useFlowStore } from "../../store/flowStore";
@@ -64,8 +63,7 @@ const Game = () => {
         style={{ display: "flex", flexDirection: "column" }}
         onClick={handleMouseClick}
       >
-        <StateKeyGate>
-          <BattleTransition
+        <BattleTransition
             mode={mode}
             battleContent={<Battle />}
             otherContent={
@@ -214,7 +212,6 @@ const Game = () => {
               </>
             }
           />
-        </StateKeyGate>
       </Screen>
     </MouseContext.Provider>
   );

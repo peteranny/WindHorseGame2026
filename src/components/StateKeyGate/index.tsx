@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useGameStore } from "../../store/gameStore";
+import Screen from "../Screen";
 import styles from "./styles.css";
 
 interface StateKeyGateProps {
@@ -23,7 +24,7 @@ const StateKeyGate = ({ children }: StateKeyGateProps) => {
 
   if (!stateKey) {
     return (
-      <div className={styles.prompt}>
+      <Screen className={styles.prompt}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -38,7 +39,7 @@ const StateKeyGate = ({ children }: StateKeyGateProps) => {
           />
           <button type="submit">確認</button>
         </form>
-      </div>
+      </Screen>
     );
   }
 
