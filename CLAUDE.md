@@ -147,6 +147,16 @@ src/
                           # of war, cellBeforeTarget (the cell just before an obstacle) and findStoppingPoint (walks
                           # a tapped straight-line move as far as it actually can, stopping short of whatever
                           # blocks it first instead of refusing the whole move).
+                          # monsterPositions.ts's computeMonsterIds scans map.txt top-to-bottom/left-to-right and
+                          # assigns each `M` cell the id at that position in monsterMapOrder.ts's MONSTER_MAP_ORDER
+                          # - a hand-maintained permutation of every monster id, not the scan-order counter itself
+                          # - so the map's own encounter order can differ from monsters.generated.json's id order
+                          # (e.g. spreading out attackFamily so the first several monsters a player meets aren't
+                          # all the same family) without renumbering any monster's id, icon file, or conversation
+                          # file. monsterMapOrder.test.ts guards it stays a full permutation matching however many
+                          # `M`s map.txt actually has, so editing the map can't silently desync the two. Since a
+                          # monster's id/icon/conversation never change, this is safe for existing save data too -
+                          # a captured id still means the same monster, only where it sits on the map moves.
                           # useFollowerTrail.ts: the hook behind the trailing captured-monster followers' whole
                           # layout - a cell-by-cell history of the player's own path (itself not persisted but
                           # seeded on load from gameStore.previousPosition, see "Game state & persistence"),
