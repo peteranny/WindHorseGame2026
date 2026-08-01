@@ -1,5 +1,5 @@
 // The splash plays as one continuous short movie (~10s hands-off), in order -
-// void, then a spark, then a big-bang burst of rainbow, then the flock
+// void, then a spark, then a big-bang burst of white, then the flock
 // expanding outward to a single rotated point and drawing back in (a plain
 // two-step CSS transition, see flyers.ts/Movie.tsx - "vortex" triggers the
 // expand-out, "vortexReturn" triggers the draw-back-in), handing off into

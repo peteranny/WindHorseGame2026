@@ -34,7 +34,7 @@ interface MovieProps {
 }
 
 // The whole "short movie": a universe blinking into being (void -> a spark ->
-// a big-bang burst of rainbow), the flock bursting outward to a scattered
+// a big-bang burst of white), the flock bursting outward to a scattered
 // point and drawing back to center (a plain two-step CSS transition, not a
 // hand-authored curve - see flyers.ts's buildVortexPoint/VORTEX_OUT_MS/
 // VORTEX_RETURN_MS), handing off into its scattered flying form once it's
@@ -52,7 +52,7 @@ const Movie = ({ act, instant, revealed }: MovieProps) => {
   const leads = useMemo(buildLeads, []);
   const leadKeyframeCss = useMemo(() => buildLeadKeyframeCss(leads), [leads]);
 
-  const rainbowVisible = hasReached(act, "bang") && !hasReached(act, "converge");
+  const whiteVisible = hasReached(act, "bang") && !hasReached(act, "converge");
   const vortexed = hasReached(act, "vortex");
   const vortexReturning = hasReached(act, "vortexReturn");
   const bloomed = hasReached(act, "bloom");
@@ -64,7 +64,7 @@ const Movie = ({ act, instant, revealed }: MovieProps) => {
       <style>{keyframeCss}</style>
       <style>{leadKeyframeCss}</style>
 
-      <div className={cn(styles.rainbowBackground, rainbowVisible && styles.visible)} />
+      <div className={cn(styles.whiteBackground, whiteVisible && styles.visible)} />
       <div className={cn(styles.skyBackground, settled && styles.visible)} />
       <div className={cn(styles.ground, settled && styles.visible)} />
 

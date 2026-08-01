@@ -42,8 +42,8 @@
 /*
  * A small glowing dot that appears alone in the void, then bursts into a
  * huge, fading flash right as "bang" hits - the flash itself is what reveals
- * .rainbowBackground underneath (both fade/transition on the same "bang"
- * edge), rather than a hard cut from black to color.
+ * .whiteBackground underneath (both fade/transition on the same "bang"
+ * edge), rather than a hard cut from black to white.
  */
 .spark {
   position: absolute;
@@ -74,66 +74,22 @@
 /* ---------- Backgrounds ---------- */
 
 /*
- * Oversized (100vmax, same convention BattleTransition's own rotating
- * overlays use) and centered via translate(-50%, -50%) so the slow spin
- * below never uncovers a corner, regardless of viewport aspect ratio.
- * Two independent animations - one drifting the gradient's own colors via
- * background-position, one slowly rotating the whole sheet via transform -
- * run concurrently on different properties, giving the backdrop a genuine
- * "living, swirling" motion through vortex/bloom rather than a static
- * (if colorful) backdrop.
+ * The "bang" burst reveals plain white rather than a rotating rainbow sheet
+ * (the rainbow was buggy on some devices) - stays solid white through
+ * vortex/vortexReturn/bloom/converge, the same window the rainbow used to
+ * occupy, until .skyBackground/.ground fade in over it at "converge".
  */
-.rainbowBackground {
+.whiteBackground {
   position: absolute;
-  top: 50%;
-  left: 50%;
+  inset: 0;
   z-index: 0;
-  width: 100vmax;
-  height: 100vmax;
   opacity: 0;
-  transform: translate(-50%, -50%);
-  background:
-    linear-gradient(
-      120deg,
-      #ff5f6d,
-      #ffc371,
-      #f9f871,
-      #6dd5ed,
-      #6a82fb,
-      #a770ef,
-      #ff5f6d
-    );
-  background-size: 400% 400%;
+  background: #fff;
   transition: opacity 900ms ease-in-out;
 }
 
-.rainbowBackground.visible {
+.whiteBackground.visible {
   opacity: 1;
-  animation: splash-rainbow-shift 8s ease-in-out infinite, splash-rainbow-spin 40s linear infinite;
-}
-
-@keyframes splash-rainbow-shift {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-@keyframes splash-rainbow-spin {
-  from {
-    transform: translate(-50%, -50%) rotate(0deg);
-  }
-
-  to {
-    transform: translate(-50%, -50%) rotate(360deg);
-  }
 }
 
 .skyBackground {

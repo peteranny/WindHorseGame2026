@@ -64,11 +64,11 @@ src/
                           #
                           # The movie, beat by beat: "void" (Movie.tsx's .voidBackdrop, solid black)
                           # has a single glowing .spark fade in at center, then "bang" bursts it into
-                          # a huge fading flash that reveals .rainbowBackground underneath (an
-                          # oversized - 100vmax, big enough that even a rotated square never uncovers
-                          # a corner - slowly-rotating rainbow sheet: two independent animations, one
-                          # drifting the gradient's own colors, one spinning the whole sheet, so the
-                          # backdrop stays alive rather than static). "vortex" is where the whole
+                          # a huge fading flash that reveals .whiteBackground underneath (a plain
+                          # solid-white full-stage layer - previously a slowly-rotating rainbow
+                          # gradient sheet, replaced because that animation was buggy on some
+                          # devices; it stays solid white through vortex/vortexReturn/bloom, the
+                          # same window the rainbow used to occupy). "vortex" is where the whole
                           # flock (extras + both leads, ALL rendered as silhouettes via filter:
                           # brightness(0) - see .flyer/.leadSprite) pops into being and bursts outward
                           # to its own random vortexPoint - a plain two-step CSS *transition*
@@ -88,7 +88,7 @@ src/
                           # position instead of its own (0, 0) frame, breaking the seamless hand-off.)
                           # From "bloom" the extras drift/loop indifferently until "converge", where
                           # they shrink+fade away (.flyerWrap.leaving) while .skyBackground/.ground
-                          # fade in to replace the rainbow.
+                          # fade in to replace the white background.
                           #
                           # The two leads (LeadFlyer.tsx) are just two more flock members through
                           # vortex/vortexReturn/bloom - same burst-out/draw-back-in, same infinite
