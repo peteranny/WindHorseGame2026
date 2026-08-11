@@ -53,6 +53,6 @@ function doGet(e) {
   template.webAppUrl = ScriptApp.getService().getUrl();
   return template
     .evaluate()
-    .setTitle("Wind Horse Game")
+    .setTitle("小風小馬遊戲2026")
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
